@@ -62,7 +62,7 @@ QueryStructTypeDef parseQuery(char* queryString){
         }
     }    
     // cчитаем количество пробельных групп в строке
-    for(size_t i =0; i < queryStringLength; i++){
+    for(size_t i = 0; i < queryStringLength; i++){
         if (queryString[i] == " "){
             if (!spaceInPrevSymbolFlag){
                 numSpaceGroups++;
@@ -77,6 +77,21 @@ QueryStructTypeDef parseQuery(char* queryString){
     numSubStrings = numSpaceGroups + 1 - startSpaceFlag - endSpaceFlag;
 
     char* stringVector = calloc(numSubStrings, sizeof(char*));
+    size_t subStrLength = 0;
+    uint8_t startSubStringFlag = 0;
+    size_t subStringCounter = 0;
+    for(size_t i = 0; i < queryStringLength; i++){
+        if (queryString[i] != " "){
+            if (!startSubStringFlag){
+                startSubStringFlag = 1;
+                subStrLength++;
+                subStringCounter++;
+            }
+        }
+    }
+                        
+    
+
     
 
     // выделяем path и параметры запроса
