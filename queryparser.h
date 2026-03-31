@@ -83,9 +83,17 @@ QueryStructTypeDef parseQuery(char* queryString){
     for(size_t i = 0; i < queryStringLength; i++){
         if (queryString[i] != " "){
             if (!startSubStringFlag){
-                startSubStringFlag = 1;
-                subStrLength++;
+                startSubStringFlag = 1;                
                 subStringCounter++;
+                subStrLength = 0;
+            }
+            else{
+                subStrLength++;
+            } 
+        }
+        else{
+            if (startSubStringFlag){
+                
             }
         }
     }
