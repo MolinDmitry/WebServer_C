@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Тест запроса к серверу</title>
+</head>
+<body>
+    <div><button onclick="testFunc('http://localhost:8000/demoserver/exec?command=com&param=value')">Тест</button></div>
+    <div><textarea id = "answerArea" rows = "18" cols="82"></textarea></div>
+
+    <script>
+        const testFunc = (queryString) => {
+            const req = new XMLHttpRequest();
+            req.onload = () => {
+                if (req.status == 200) {
+                    const answerObject = req.response;
+                    const answerTextArea = document.getElementById("answerArea");
+                    answerTextArea.value = "";
+                    for (let key in answerObject){
+                            answerTextArea.value += key + ": " + answerObject[key] + "\n";
+                        }                                        
+                }
+            };
+            req.open("GET",queryString);
+            req.responseType = "json";
+            req.send();
+        }
+    </script>
+</body>
+</html>

@@ -9,7 +9,7 @@
                 "-g",
                 "${file}",
                 "-o",
-                "${fileDirname}\\bin\\${fileBasenameNoExtension}.exe",
+                "${fileDirname}\\bin\\demowebserver.exe",
                 "-lws2_32"
             ],
             "options": {

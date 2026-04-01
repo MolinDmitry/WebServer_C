@@ -12,6 +12,9 @@
 #pragma comment(lib, "libws2_32.a")
 #include "queryparser.h"
 
+
+const char SERV_PORT[] = "8000";
+
 //========================================================================================
 void appendStr(char* targetStr, const char* appendStr, size_t* length){
         strcat(targetStr, appendStr);
@@ -19,30 +22,64 @@ void appendStr(char* targetStr, const char* appendStr, size_t* length){
 }
 
 //========================================================================================
-void printString(char* str){
-    size_t length = strlen(str);
-    for(size_t i = 0; i < length; i++){
-        printf("%c", str[i]);
+
+void printStringVector(StringVectorTypeDef strVect){
+    for(size_t i = 0; i < strVect.size; i++){
+        printf("%s\n", strVect.strings[i]);
     }
 }
+
 //========================================================================================
 
-
-
 int main(int argc, char* argv[]){
-    printf("Hello, World!\n");
-    char testString1[256] = "GET /demoserver/exec?command=com&param=value HTTP/1.1";
-    char testString2[256] = "GET /testpage HTTP/1.1";
-    char testString3[256] = "GET /testpage/ HTTP/1.1";
-    char testQuery1[256] = "GET /demoserver/exec?command=com&param=value HTTP/1.1\r\nSecond row\r\nThird row\r\n";
+    printf("Demo Web-server\n");
 
-    char* queryString = getQueryString(testQuery1);
-    printString(queryString);
-    free(queryString);
 
-    
+    // char testString1[] = "GET /demoserver/exec?command=com&param=value HTTP/1.1";
+    // char testString2[] = "GET /testpage HTTP/1.1";
+    // char testString3[] = "GET /testpage/ HTTP/1.1";
+    // char testString4[] = "  abc def 123  ";
+    // char testString5[] = "exec?command=com&param=value";
+    // char testString6[] = "command=com&param=value";
+    // char testString7[] = "param=value";
+    // char testQuery1[] = "GET /demoserver/exec?command=com&param=value HTTP/1.1\r\nSecond row\r\nThird row\r\n";
+    // char testQuery2[] = "GET /testpage HTTP/1.1\r\nSecond row\r\nThird row\r\n";
 
-    return 0;
+    // char* queryString = getQueryString(testQuery2);
+    // printf("query string: %s\n", queryString);
+    // QueryStructTypeDef query = parseQuery(queryString);
+    // free(queryString);
+    // printf("path: %s\n",query.pathString);
+    // for(size_t i = 0; i < query.numQueryParameters; i++){
+    //     printf("parameter %d name: %s\n", i, query.parameters[i].parameterNameString);
+    //     printf("parameter %d value: %s\n", i, query.parameters[i].valueString);
+    // }
+    // deleteQueryStruct(&query);
+
+
+    // StringVectorTypeDef strVect = splitString(testString4, ' ');
+    // printStringVector(strVect);
+    // deleteStringVector(&strVect);
+    // strVect = splitString(testString5, '?');
+    // printStringVector(strVect);
+    // deleteStringVector(&strVect);
+    // strVect = splitString(testString6, '&');
+    // printStringVector(strVect);
+    // deleteStringVector(&strVect);
+    // strVect = splitString(testString7, '=');
+    // printStringVector(strVect);
+    // deleteStringVector(&strVect);
+
+    // QueryStructTypeDef query = parseQuery(testString5);
+    // printf("%s\n",query.pathString);
+    // for(size_t i = 0; i < query.numQueryParameters; i++){
+    //     printf("%s\n",query.parameters[i].parameterNameString);
+    //     printf("%s\n",query.parameters[i].valueString);
+    // }
+    // deleteQueryStruct(&query);
+
+
+    //return 0;
 
     // служебная структура для хранения информации
     // о реализации Windows Sockets
@@ -74,7 +111,7 @@ int main(int argc, char* argv[]){
 
     // Инициализируем структуру, хранящую адрес сокета - addr.
     // HTTP-сервер будет висеть на 8000-м порту локалхоста
-    result = getaddrinfo("127.0.0.1", "8000", &hints, &addr);
+    result = getaddrinfo("127.0.0.1", SERV_PORT, &hints, &addr);
 
     // Если инициализация структуры адреса завершилась с ошибкой,
     // выведем сообщением об этом и завершим выполнение программы 
@@ -119,9 +156,11 @@ int main(int argc, char* argv[]){
         WSACleanup();
         return 1;
     }
-
+    
     uint8_t finishFlag = 0;
     while(!finishFlag){
+        printf("\n\n<==========================================================================================>\n");
+        printf("Listening port %s\n", SERV_PORT);
         // Принимаем входящие соединения
         int client_socket = accept(listen_socket, NULL, NULL);
         if (client_socket == INVALID_SOCKET) {
@@ -151,34 +190,58 @@ int main(int argc, char* argv[]){
             // Мы знаем фактический размер полученных данных, поэтому ставим метку конца строки
             // В буфере запроса.
             buf[result] = '\0';
-            for(size_t i = 0; i < result; i++){
-                printf("%c", buf[i]);
+
+            // печатаем запрос
+            // for(size_t i = 0; i < result; i++){
+            //     printf("%c", buf[i]);
+            // }
+
+            // анализ запроса
+            char* queryString = getQueryString(buf);
+            printf("Query is received: %s", queryString);
+            QueryStructTypeDef query = parseQuery(queryString);
+            free(queryString);
+            printf("Path: %s", query.pathString);
+            for(size_t i = 0; i < query.numQueryParameters; i++){
+                printf("parameter %d name: %s\n", i, query.parameters[i].parameterNameString);
+                printf("parameter %d value: %s\n", i, query.parameters[i].valueString);
             }
             
-            size_t response_size = 0;
 
+            if (!strcmp(query.pathString, "/testpage")){
+                // отвечаем на запрос с путем "/testpage"
+                size_t response_size = 0;
+                char response_body[1024] = "{\"param1\":0,\"param2\":1}\n";
+                FILE* fp = fopen("testpage.html", "r");
 
-            char response_body[1024] = "{\"param1\":0,\"param2\":1}\n";
+                if (fp == NULL){
 
-            // // Формируем весь ответ вместе с заголовками
-            appendStr(response, "HTTP/1.1 200 OK\r\n", &response_size);
-            appendStr(response, "Version: HTTP/1.1\r\n", &response_size);
-            appendStr(response, "Content-Type: application/json; charset=utf-8\r\n", &response_size);
-            appendStr(response, "Content-Length: ", &response_size);
-            char contentLengthStr[10] = "";
-            snprintf(contentLengthStr, sizeof contentLengthStr, "%d", strlen(response_body));
-            appendStr(response, contentLengthStr, &response_size);
-            appendStr(response, "\r\n\r\n", &response_size);
-            appendStr(response, response_body, &response_size);
+                }
+                if (fp != NULL)
+                    fclose(fp);
+                
 
+                // // Формируем весь ответ вместе с заголовками
+                appendStr(response, "HTTP/1.1 200 OK\r\n", &response_size);
+                appendStr(response, "Version: HTTP/1.1\r\n", &response_size);
+                appendStr(response, "Content-Type: application/json; charset=utf-8\r\n", &response_size);
+                appendStr(response, "Content-Length: ", &response_size);
+                char contentLengthStr[10] = "";
+                snprintf(contentLengthStr, sizeof contentLengthStr, "%d", strlen(response_body));
+                appendStr(response, contentLengthStr, &response_size);
+                appendStr(response, "\r\n\r\n", &response_size);
+                appendStr(response, response_body, &response_size);
 
-            // Отправляем ответ клиенту с помощью функции send
-            result = send(client_socket, response, response_size, 0);
-
-            if (result == SOCKET_ERROR) {
-                // произошла ошибка при отправле данных
-                 printf("send failed: %d\n", WSAGetLastError());
+                // Отправляем ответ клиенту с помощью функции send
+                result = send(client_socket, response, response_size, 0);
+                if (result == SOCKET_ERROR) {
+                    // произошла ошибка при отправле данных
+                    printf("send failed: %d\n", WSAGetLastError());
+                }
             }
+            deleteQueryStruct(&query);
+            
+            
             // Закрываем соединение к клиентом
             closesocket(client_socket);
     
