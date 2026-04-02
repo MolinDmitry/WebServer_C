@@ -12,29 +12,11 @@
 // также для успешной компиляции необходимо добавить аргумент компилятора -lws2_32 самым последним (в файле tasks.json)
 #pragma comment(lib, "libws2_32.a")
 #include "queryparser.h"
+#include "stringlib.h"
+#include "controllers.h"
 
 
 const char SERV_PORT[] = "8000";
-
-//========================================================================================
-char* appendStr(char* targetStr, const char* appendStr){
-        char* resultString = NULL;
-        if (appendStr  == NULL)
-        return targetStr;
-        size_t appendStringLength = strlen(appendStr);
-        size_t targetStringLength = 0;
-        if (targetStr == NULL) 
-            resultString = calloc(appendStringLength+1, sizeof(char));
-        else{
-            targetStringLength = strlen(targetStr);
-            resultString = (char*)realloc(targetStr, (targetStringLength + appendStringLength + 1)*sizeof(char));
-        }
-        for(size_t i = 0; i < appendStringLength; i++){
-            resultString[targetStringLength + i] = appendStr[i];
-        }
-        resultString[targetStringLength + appendStringLength] = '\0';
-        return resultString;              
-}
 
 //========================================================================================
 
@@ -42,40 +24,6 @@ void printStringVector(StringVectorTypeDef strVect){
     for(size_t i = 0; i < strVect.size; i++){
         printf("%s\n", strVect.strings[i]);
     }
-}
-
-//========================================================================================
-void sendAnswer(SOCKET* clientSocket, char* response_body, uint8_t contentType, char* statusString){
-    char* response = NULL;
-    // Формируем весь ответ вместе с заголовками
-    response = appendStr(response, "HTTP/1.1 ");
-    response = appendStr(response, statusString);
-    response = appendStr(response, "\r\n");
-    response = appendStr(response, "Version: HTTP/1.1\r\n");
-    response = appendStr(response, "Access-Control-Allow-Origin: http://localhost:8000\r\n");
-    response = appendStr(response, "Access-Control-Allow-Methods: GET, POST\r\n");
-    response = appendStr(response, "Access-Control-Allow-Headers: Content-Type\r\n");
-    if (!contentType)
-        response =  appendStr(response, "Content-Type: text/html; charset=utf-8\r\n");
-    else
-        response =  appendStr(response, "Content-Type: application/json; charset=utf-8\r\n");
-    response =  appendStr(response, "Content-Length: ");
-    char contentLengthStr[100] = "";
-    snprintf(contentLengthStr, sizeof(contentLengthStr), "%d", strlen(response_body));
-    response =  appendStr(response, contentLengthStr);
-    response =  appendStr(response, "\r\n\r\n");
-    response =  appendStr(response, response_body);
-
-    // Отправляем ответ клиенту с помощью функции send
-    int result = send(*clientSocket, response, strlen(response), 0);
-    if (result == SOCKET_ERROR) {
-        // произошла ошибка при отправке данных
-        printf("send failed: %d\n", WSAGetLastError());
-    }
-    free(response);
-    free(response_body);
-    response = NULL;
-    response_body = NULL;
 }
 
 
@@ -261,35 +209,25 @@ int main(int argc, char* argv[]){
             
             char* response_body = NULL;
             if (!strcmp(query.pathString, "/testpage")){
-                contentType = 0;
                 // отвечаем на запрос с путем "/testpage"
+                testpageController(&client_socket);
                 
-                char fileReadingBuffer[256];                
-                FILE* fp = fopen("..\\pages\\testpage.html", "r");
-                if (fp == NULL){
-                    printf("Error during file open operation!\n");
-                    response_body = appendStr(response_body, "<html><body><h2>Error 404. Page is not found</h2></body</html>\n");
-                }
-                else{
-                    while(fgets(fileReadingBuffer, 256, fp) != NULL){
-                        response_body = appendStr(response_body, fileReadingBuffer);
-                    }
-                    fclose(fp);
-                }                
-                sendAnswer(&client_socket, response_body, contentType, "200 OK");
             } else if (!strcmp(query.pathString, "/demoserver/exec")){
-                contentType = 1;
-                response_body = appendStr(response_body, "{\"param1\":0,\"param2\":1}\n");
-                sendAnswer(&client_socket, response_body, contentType, "200 OK");
+                execController(&client_socket, &query);
+                // contentType = 1;
+                // response_body = appendStr(response_body, "{\"param1\":0,\"param2\":1}\n");
+                // sendAnswer(&client_socket, response_body, contentType, "200 OK");
             } else if (!strcmp(query.pathString, "/favicon.ico")){
-                contentType = 0;
-                response_body = appendStr(response_body, "\n");
-                sendAnswer(&client_socket, response_body, contentType, "404 Not found");
+                faviconController(&client_socket);
+                // contentType = 0;
+                // response_body = appendStr(response_body, "\n");
+                // sendAnswer(&client_socket, response_body, contentType, "404 Not found");
             } else{
                 // ответ на неизвестный запрос
-                contentType = 0;
-                response_body = appendStr(response_body, "<html><body><h2>Error 404. Page is not found</h2></body</html>\n");
-                sendAnswer(&client_socket, response_body, contentType, "404 Not found");
+                defaultController(&client_socket);
+                // contentType = 0;
+                // response_body = appendStr(response_body, "<html><body><h2>Error 404. Page is not found</h2></body</html>\n");
+                // sendAnswer(&client_socket, response_body, contentType, "404 Not found");
             }
             deleteQueryStruct(&query);
             // Закрываем соединение к клиентом
