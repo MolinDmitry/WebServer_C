@@ -4,6 +4,7 @@
 
 #include <WinSock2.h>
 #include <WS2tcpip.h>
+#include <windows.h>
 
 
 // Необходимо, чтобы линковка происходила с DLL-библиотекой 
@@ -16,9 +17,23 @@
 const char SERV_PORT[] = "8000";
 
 //========================================================================================
-void appendStr(char* targetStr, const char* appendStr, size_t* length){
-        strcat(targetStr, appendStr);
-        *length += strlen(appendStr);
+char* appendStr(char* targetStr, const char* appendStr){
+        char* resultString = NULL;
+        if (appendStr  == NULL)
+        return targetStr;
+        size_t appendStringLength = strlen(appendStr);
+        size_t targetStringLength = 0;
+        if (targetStr == NULL) 
+            resultString = calloc(appendStringLength+1, sizeof(char));
+        else{
+            targetStringLength = strlen(targetStr);
+            resultString = (char*)realloc(targetStr, (targetStringLength + appendStringLength + 1)*sizeof(char));
+        }
+        for(size_t i = 0; i < appendStringLength; i++){
+            resultString[targetStringLength + i] = appendStr[i];
+        }
+        resultString[targetStringLength + appendStringLength] = '\0';
+        return resultString;              
 }
 
 //========================================================================================
@@ -30,10 +45,48 @@ void printStringVector(StringVectorTypeDef strVect){
 }
 
 //========================================================================================
+void sendAnswer(SOCKET* clientSocket, char* response_body, uint8_t contentType, char* statusString){
+    char* response = NULL;
+    // Формируем весь ответ вместе с заголовками
+    response = appendStr(response, "HTTP/1.1 ");
+    response = appendStr(response, statusString);
+    response = appendStr(response, "\r\n");
+    response = appendStr(response, "Version: HTTP/1.1\r\n");
+    response = appendStr(response, "Access-Control-Allow-Origin: http://localhost:8000\r\n");
+    response = appendStr(response, "Access-Control-Allow-Methods: GET, POST\r\n");
+    response = appendStr(response, "Access-Control-Allow-Headers: Content-Type\r\n");
+    if (!contentType)
+        response =  appendStr(response, "Content-Type: text/html; charset=utf-8\r\n");
+    else
+        response =  appendStr(response, "Content-Type: application/json; charset=utf-8\r\n");
+    response =  appendStr(response, "Content-Length: ");
+    char contentLengthStr[100] = "";
+    snprintf(contentLengthStr, sizeof(contentLengthStr), "%d", strlen(response_body));
+    response =  appendStr(response, contentLengthStr);
+    response =  appendStr(response, "\r\n\r\n");
+    response =  appendStr(response, response_body);
+
+    // Отправляем ответ клиенту с помощью функции send
+    int result = send(*clientSocket, response, strlen(response), 0);
+    if (result == SOCKET_ERROR) {
+        // произошла ошибка при отправке данных
+        printf("send failed: %d\n", WSAGetLastError());
+    }
+    free(response);
+    free(response_body);
+    response = NULL;
+    response_body = NULL;
+}
+
+
+//========================================================================================
 
 int main(int argc, char* argv[]){
     printf("Demo Web-server\n");
-
+    // TCHAR buffer[MAX_PATH];
+	// GetCurrentDirectory(sizeof(buffer),buffer);
+    // printf("%s", buffer);
+    
 
     // char testString1[] = "GET /demoserver/exec?command=com&param=value HTTP/1.1";
     // char testString2[] = "GET /testpage HTTP/1.1";
@@ -162,7 +215,7 @@ int main(int argc, char* argv[]){
         printf("\n\n<==========================================================================================>\n");
         printf("Listening port %s\n", SERV_PORT);
         // Принимаем входящие соединения
-        int client_socket = accept(listen_socket, NULL, NULL);
+        SOCKET client_socket = accept(listen_socket, NULL, NULL);
         if (client_socket == INVALID_SOCKET) {
             printf("accept failed: %d\n", WSAGetLastError());
             closesocket(listen_socket);
@@ -175,9 +228,7 @@ int main(int argc, char* argv[]){
 
         result = recv(client_socket, buf, max_client_buffer_size, 0);
 
-        const int max_response_buffer_size = 2048;
-        char response[max_response_buffer_size];
-        response[0] = '\0';
+        char* response = NULL; // сторка ответа 
        
         if (result == SOCKET_ERROR) {
             // ошибка получения данных
@@ -196,55 +247,53 @@ int main(int argc, char* argv[]){
             //     printf("%c", buf[i]);
             // }
 
+            uint8_t contentType = 0;
             // анализ запроса
             char* queryString = getQueryString(buf);
             printf("Query is received: %s", queryString);
             QueryStructTypeDef query = parseQuery(queryString);
             free(queryString);
-            printf("Path: %s", query.pathString);
+            printf("Path: %s\n", query.pathString);
             for(size_t i = 0; i < query.numQueryParameters; i++){
                 printf("parameter %d name: %s\n", i, query.parameters[i].parameterNameString);
                 printf("parameter %d value: %s\n", i, query.parameters[i].valueString);
             }
             
-
+            char* response_body = NULL;
             if (!strcmp(query.pathString, "/testpage")){
+                contentType = 0;
                 // отвечаем на запрос с путем "/testpage"
-                size_t response_size = 0;
-                char response_body[1024] = "{\"param1\":0,\"param2\":1}\n";
-                FILE* fp = fopen("testpage.html", "r");
-
-                if (fp == NULL){
-
-                }
-                if (fp != NULL)
-                    fclose(fp);
                 
-
-                // // Формируем весь ответ вместе с заголовками
-                appendStr(response, "HTTP/1.1 200 OK\r\n", &response_size);
-                appendStr(response, "Version: HTTP/1.1\r\n", &response_size);
-                appendStr(response, "Content-Type: application/json; charset=utf-8\r\n", &response_size);
-                appendStr(response, "Content-Length: ", &response_size);
-                char contentLengthStr[10] = "";
-                snprintf(contentLengthStr, sizeof contentLengthStr, "%d", strlen(response_body));
-                appendStr(response, contentLengthStr, &response_size);
-                appendStr(response, "\r\n\r\n", &response_size);
-                appendStr(response, response_body, &response_size);
-
-                // Отправляем ответ клиенту с помощью функции send
-                result = send(client_socket, response, response_size, 0);
-                if (result == SOCKET_ERROR) {
-                    // произошла ошибка при отправле данных
-                    printf("send failed: %d\n", WSAGetLastError());
+                char fileReadingBuffer[256];                
+                FILE* fp = fopen("..\\pages\\testpage.html", "r");
+                if (fp == NULL){
+                    printf("Error during file open operation!\n");
+                    response_body = appendStr(response_body, "<html><body><h2>Error 404. Page is not found</h2></body</html>\n");
                 }
+                else{
+                    while(fgets(fileReadingBuffer, 256, fp) != NULL){
+                        response_body = appendStr(response_body, fileReadingBuffer);
+                    }
+                    fclose(fp);
+                }                
+                sendAnswer(&client_socket, response_body, contentType, "200 OK");
+            } else if (!strcmp(query.pathString, "/demoserver/exec")){
+                contentType = 1;
+                response_body = appendStr(response_body, "{\"param1\":0,\"param2\":1}\n");
+                sendAnswer(&client_socket, response_body, contentType, "200 OK");
+            } else if (!strcmp(query.pathString, "/favicon.ico")){
+                contentType = 0;
+                response_body = appendStr(response_body, "\n");
+                sendAnswer(&client_socket, response_body, contentType, "404 Not found");
+            } else{
+                // ответ на неизвестный запрос
+                contentType = 0;
+                response_body = appendStr(response_body, "<html><body><h2>Error 404. Page is not found</h2></body</html>\n");
+                sendAnswer(&client_socket, response_body, contentType, "404 Not found");
             }
             deleteQueryStruct(&query);
-            
-            
             // Закрываем соединение к клиентом
-            closesocket(client_socket);
-    
+            closesocket(client_socket);    
         }
     }
 
