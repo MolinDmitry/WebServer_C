@@ -35,53 +35,6 @@ int main(int argc, char* argv[]){
 	// GetCurrentDirectory(sizeof(buffer),buffer);
     // printf("%s", buffer);
     
-
-    // char testString1[] = "GET /demoserver/exec?command=com&param=value HTTP/1.1";
-    // char testString2[] = "GET /testpage HTTP/1.1";
-    // char testString3[] = "GET /testpage/ HTTP/1.1";
-    // char testString4[] = "  abc def 123  ";
-    // char testString5[] = "exec?command=com&param=value";
-    // char testString6[] = "command=com&param=value";
-    // char testString7[] = "param=value";
-    // char testQuery1[] = "GET /demoserver/exec?command=com&param=value HTTP/1.1\r\nSecond row\r\nThird row\r\n";
-    // char testQuery2[] = "GET /testpage HTTP/1.1\r\nSecond row\r\nThird row\r\n";
-
-    // char* queryString = getQueryString(testQuery2);
-    // printf("query string: %s\n", queryString);
-    // QueryStructTypeDef query = parseQuery(queryString);
-    // free(queryString);
-    // printf("path: %s\n",query.pathString);
-    // for(size_t i = 0; i < query.numQueryParameters; i++){
-    //     printf("parameter %d name: %s\n", i, query.parameters[i].parameterNameString);
-    //     printf("parameter %d value: %s\n", i, query.parameters[i].valueString);
-    // }
-    // deleteQueryStruct(&query);
-
-
-    // StringVectorTypeDef strVect = splitString(testString4, ' ');
-    // printStringVector(strVect);
-    // deleteStringVector(&strVect);
-    // strVect = splitString(testString5, '?');
-    // printStringVector(strVect);
-    // deleteStringVector(&strVect);
-    // strVect = splitString(testString6, '&');
-    // printStringVector(strVect);
-    // deleteStringVector(&strVect);
-    // strVect = splitString(testString7, '=');
-    // printStringVector(strVect);
-    // deleteStringVector(&strVect);
-
-    // QueryStructTypeDef query = parseQuery(testString5);
-    // printf("%s\n",query.pathString);
-    // for(size_t i = 0; i < query.numQueryParameters; i++){
-    //     printf("%s\n",query.parameters[i].parameterNameString);
-    //     printf("%s\n",query.parameters[i].valueString);
-    // }
-    // deleteQueryStruct(&query);
-
-
-    //return 0;
-
     // служебная структура для хранения информации
     // о реализации Windows Sockets
     WSADATA wsaData;
@@ -207,27 +160,18 @@ int main(int argc, char* argv[]){
                 printf("parameter %d value: %s\n", i, query.parameters[i].valueString);
             }
             
-            char* response_body = NULL;
+            // char* response_body = NULL;
             if (!strcmp(query.pathString, "/testpage")){
                 // отвечаем на запрос с путем "/testpage"
                 testpageController(&client_socket);
                 
             } else if (!strcmp(query.pathString, "/demoserver/exec")){
                 execController(&client_socket, &query);
-                // contentType = 1;
-                // response_body = appendStr(response_body, "{\"param1\":0,\"param2\":1}\n");
-                // sendAnswer(&client_socket, response_body, contentType, "200 OK");
             } else if (!strcmp(query.pathString, "/favicon.ico")){
                 faviconController(&client_socket);
-                // contentType = 0;
-                // response_body = appendStr(response_body, "\n");
-                // sendAnswer(&client_socket, response_body, contentType, "404 Not found");
             } else{
                 // ответ на неизвестный запрос
                 defaultController(&client_socket);
-                // contentType = 0;
-                // response_body = appendStr(response_body, "<html><body><h2>Error 404. Page is not found</h2></body</html>\n");
-                // sendAnswer(&client_socket, response_body, contentType, "404 Not found");
             }
             deleteQueryStruct(&query);
             // Закрываем соединение к клиентом

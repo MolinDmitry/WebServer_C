@@ -5,11 +5,13 @@
 <title>Тест запроса к серверу</title>
 </head>
 <body>
-    <div><button onclick="testFunc('http://localhost:8000/demoserver/exec?command=1&param=2')">Тест</button></div>
+    <div><button onclick="testFunc()">Тест</button></div>
     <div><textarea id = "answerArea" rows = "18" cols="82"></textarea></div>
 
     <script>
-        const testFunc = (queryString) => {
+        let timerEnabledFlag = false;
+
+        const timerTick = () => {
             const req = new XMLHttpRequest();
             req.onload = () => {
                 if (req.status == 200) {
@@ -18,12 +20,33 @@
                     answerTextArea.value = "";
                     for (let key in answerObject){
                             answerTextArea.value += key + ": " + answerObject[key] + "\n";
-                        }                                        
+                        }
+                    if (timerEnabledFlag){
+                        setTimeout(() => {
+                            timerTick(); 
+                        }, 200);
+                    }                                                            
                 }
             };
-            req.open("GET",queryString);
+            req.open("GET", 'http://localhost:8000/demoserver/exec?command=1&param=2');
             req.responseType = "json";
             req.send();
+        }
+
+
+        
+        
+
+        const testFunc = () => {
+            if (timerEnabledFlag){
+                timerEnabledFlag = false;
+            }
+            else {
+                timerEnabledFlag = true;
+                timerTick();
+            }
+            //timerTick();
+
         }
     </script>
 </body>
