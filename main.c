@@ -30,7 +30,7 @@ void printStringVector(StringVectorTypeDef strVect){
 //========================================================================================
 
 int main(int argc, char* argv[]){
-    printf("Demo Web-server\n");
+    printf("Demo Web-server is starting ...\n");
     // TCHAR buffer[MAX_PATH];
 	// GetCurrentDirectory(sizeof(buffer),buffer);
     // printf("%s", buffer);
@@ -110,11 +110,12 @@ int main(int argc, char* argv[]){
         WSACleanup();
         return 1;
     }
-    
+
+    printf("Demo Web-server is running\n");    
     uint8_t finishFlag = 0;
     while(!finishFlag){
-        printf("\n\n<==========================================================================================>\n");
-        printf("Listening port %s\n", SERV_PORT);
+        // printf("\n\n<==========================================================================================>\n");
+        // printf("Listening port %s\n", SERV_PORT);
         // Принимаем входящие соединения
         SOCKET client_socket = accept(listen_socket, NULL, NULL);
         if (client_socket == INVALID_SOCKET) {
@@ -151,14 +152,14 @@ int main(int argc, char* argv[]){
             uint8_t contentType = 0;
             // анализ запроса
             char* queryString = getQueryString(buf);
-            printf("Query is received: %s", queryString);
+            //printf("Query is received: %s", queryString);
             QueryStructTypeDef query = parseQuery(queryString);
             free(queryString);
-            printf("Path: %s\n", query.pathString);
-            for(size_t i = 0; i < query.numQueryParameters; i++){
-                printf("parameter %d name: %s\n", i, query.parameters[i].parameterNameString);
-                printf("parameter %d value: %s\n", i, query.parameters[i].valueString);
-            }
+            // printf("Path: %s\n", query.pathString);
+            // for(size_t i = 0; i < query.numQueryParameters; i++){
+            //     printf("parameter %d name: %s\n", i, query.parameters[i].parameterNameString);
+            //     printf("parameter %d value: %s\n", i, query.parameters[i].valueString);
+            // }
             
             // char* response_body = NULL;
             if (!strcmp(query.pathString, "/testpage")){
