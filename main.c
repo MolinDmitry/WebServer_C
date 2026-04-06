@@ -161,7 +161,7 @@ int main(int argc, char* argv[]){
             //     printf("parameter %d value: %s\n", i, query.parameters[i].valueString);
             // }
             
-            // char* response_body = NULL;
+            
             if (!strcmp(query.pathString, "/testpage")){
                 // отвечаем на запрос с путем "/testpage"
                 testpageController(&client_socket);
