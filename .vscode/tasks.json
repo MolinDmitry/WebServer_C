@@ -7,7 +7,7 @@
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",
-                "${file}",
+                "main.c",
                 "-o",
                 "${fileDirname}\\bin\\demowebserver.exe",
                 "-lws2_32"

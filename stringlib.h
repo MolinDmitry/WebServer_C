@@ -53,8 +53,6 @@ void sendAnswer(SOCKET* clientSocket, char* response_body, uint8_t contentType, 
         printf("send failed: %d\n", WSAGetLastError());
     }
     free(response);
-    free(response_body);
     response = NULL;
-    response_body = NULL;
 }
 
